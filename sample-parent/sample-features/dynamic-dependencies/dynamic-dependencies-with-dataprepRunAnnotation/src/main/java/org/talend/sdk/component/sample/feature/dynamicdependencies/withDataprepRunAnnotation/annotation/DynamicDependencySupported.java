@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.talend.sdk.component.api.configuration.type;
+package org.talend.sdk.component.sample.feature.dynamicdependencies.withDataprepRunAnnotation.annotation;
 
 import static java.lang.annotation.ElementType.TYPE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
@@ -26,9 +26,9 @@ import org.talend.sdk.component.api.meta.Documentation;
 
 @Target(TYPE)
 @Retention(RUNTIME)
-@ConfigurationType("dynamicDependenciesServiceConfiguration")
-@Documentation("Mark a model (complex object) as being the configuration used in services annotated with @DynamicDependencies.")
-public @interface DynamicDependenciesServiceConfiguration {
+@ConfigurationType("configuration")
+@Documentation("Copy/past of the annotation from tDataprepRun.")
+public @interface DynamicDependencySupported {
 
     String value() default "default";
 }
