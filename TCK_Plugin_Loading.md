@@ -1,30 +1,30 @@
-# Mécanisme de Chargement des Plugins TCK (Talend Component Kit)
+# TCK (Talend Component Kit) Plugin Loading Mechanism
 
-Ce document détaille le processus de découverte et de chargement des plugins (composants) dans l'écosystème Talend Component Kit (TCK). Le mécanisme repose principalement sur deux stratégies : une déclaration explicite via `plugins.properties` et une auto-découverte dynamique.
+This document details the process of discovering and loading plugins (components) within the Talend Component Kit (TCK) ecosystem. The mechanism mainly relies on two strategies: an explicit declaration via `plugins.properties` and dynamic auto-discovery.
 
-## 1. Vue d'ensemble
+## 1. Overview
 
-Le chargement des plugins est orchestré par le `ComponentManager` qui délègue la gestion des conteneurs isolés au `ContainerManager`. L'objectif est de charger chaque plugin dans son propre `ClassLoader` pour garantir l'isolation des dépendances.
+Plugin loading is orchestrated by the `ComponentManager`, which delegates the management of isolated containers to the `ContainerManager`. The goal is to load each plugin in its own `ClassLoader` to ensure dependency isolation.
 
-### Acteurs Principaux
-- **ComponentManager** : Point d'entrée singleton, coordonne l'ensemble du cycle de vie.
-- **ContainerManager** : Gère la création et le stockage des conteneurs (un par plugin).
-- **Plugins/Conteneurs** : Unités isolées contenant le code du composant.
+### Key Actors
+- **ComponentManager**: Singleton entry point, coordinates the entire lifecycle.
+- **ContainerManager**: Manages the creation and storage of containers (one per plugin).
+- **Plugins/Containers**: Isolated units containing the component code.
 
-## 2. Le Fichier `plugins.properties`
+## 2. The `plugins.properties` File
 
-C'est la méthode explicite ou "statique" pour déclarer des plugins, particulièrement utilisée dans les environnements packagés (comme les fatjars ou les applications autonomes).
+This is the explicit or "static" method for declaring plugins, particularly used in packaged environments (such as fatjars or standalone applications).
 
-*   **Localisation par défaut** : `TALEND-INF/plugins.properties` (dans le classpath du chargeur parent).
-*   **Format** : Propriétés Java standard `clé=valeur`.
-    *   **Clé** : ID du plugin (souvent le nom de l'artefact).
-    *   **Valeur** : Coordonnées du module (ex: coordonnées Maven `mvn:groupId/artifactId/version` ou chemin fichier).
+*   **Default Location**: `TALEND-INF/plugins.properties` (in the parent loader's classpath).
+*   **Format**: Standard Java properties `key=value`.
+    *   **Key**: Plugin ID (often the artifact name).
+    *   **Value**: Module coordinates (e.g., Maven coordinates `mvn:groupId/artifactId/version` or file path).
 
-### Processus de Chargement
-Lors de l'initialisation du `ContainerManager` :
-1.  Il recherche la ressource `TALEND-INF/plugins.properties`.
-2.  Il lit les entrées et alimente une map interne `nestedContainerMapping`.
-3.  Le `ComponentManager` itère ensuite sur ces définitions pour déclencher le chargement effectif des plugins.
+### Loading Process
+During `ContainerManager` initialization:
+1.  It searches for the `TALEND-INF/plugins.properties` resource.
+2.  It reads the entries and populates an internal map `nestedContainerMapping`.
+3.  The `ComponentManager` then iterates over these definitions to trigger the actual loading of the plugins.
 
 ```mermaid
 sequenceDiagram
@@ -40,7 +40,7 @@ sequenceDiagram
     ContM->>ContM: Read & Cache Mappings (nestedContainerMapping)
     CM->>ContM: getDefinedNestedPlugin()
     ContM-->>CM: List[PluginID]
-    loop Pour chaque PluginID déclaré
+    loop For each declared PluginID
         CM->>CM: addPlugin(PluginID)
         CM->>ContM: builder(PluginID).create()
         ContM->>ContM: Resolve Artifact (via Maven/File)
@@ -49,46 +49,46 @@ sequenceDiagram
     end
 ```
 
-## 3. Auto-découverte (Service Loader & Markers)
+## 3. Auto-discovery (Service Loader & Markers)
 
-En l'absence de déclaration explicite, ou en complément, TCK peut découvrir des composants présents dans le classpath.
+In the absence of explicit declaration, or in addition to it, TCK can discover components present in the classpath.
 
-### Mécanismes
-1.  **Marqueurs Maven** : Le `ContainerManager` scanne les ressources `META-INF/maven/org.talend.sdk.component/` pour identifier les modules de composants disponibles.
-2.  **Appelant (Caller)** : La méthode `ComponentManager.addCallerAsPlugin()` tente d'identifier le JAR ou le dossier de classes qui a invoqué le manager et l'enregistre dynamiquement comme un plugin si ce n'est pas déjà fait.
-3.  **StandaloneContainerFinder** : Dans certains modes d'exécution, si un plugin demandé n'est pas trouvé, le système tente de le résoudre dynamiquement en supposant qu'il est présent dans le classpath ou dans un dépôt imbriqué via le `plugins.properties`.
+### Mechanisms
+1.  **Maven Markers**: The `ContainerManager` scans `META-INF/maven/org.talend.sdk.component/` resources to identify available component modules.
+2.  **Caller**: The `ComponentManager.addCallerAsPlugin()` method attempts to identify the JAR or class folder that invoked the manager and dynamically registers it as a plugin if not already done.
+3.  **StandaloneContainerFinder**: In certain execution modes, if a requested plugin is not found, the system attempts to resolve it dynamically by assuming it is present in the classpath or in a nested repository via `plugins.properties`.
 
 ```mermaid
 flowchart TD
-    Start([Démarrage ComponentManager]) --> InitCM[Initialisation]
-    InitCM --> LoadProps{plugins.properties présent ?}
+    Start([ComponentManager Start]) --> InitCM[Initialization]
+    InitCM --> LoadProps{plugins.properties present?}
     
-    LoadProps -- Oui --> ReadProps[Lecture TALEND-INF/plugins.properties]
-    ReadProps --> MapPlugins[Enregistrement mappings ID -> Location]
-    LoadProps -- Non --> AutoDisc[Mode Auto-découverte uniquement]
+    LoadProps -- Yes --> ReadProps[Read TALEND-INF/plugins.properties]
+    ReadProps --> MapPlugins[Register ID -> Location mappings]
+    LoadProps -- No --> AutoDisc[Auto-discovery Mode only]
     
-    MapPlugins --> Iterate[Itération sur les plugins définis]
-    Iterate --> CreateCont[Création Conteneur Isolé]
+    MapPlugins --> Iterate[Iterate over defined plugins]
+    Iterate --> CreateCont[Create Isolated Container]
     
     AutoDisc --> ScanCP[Scan Classpath]
-    ScanCP --> CheckMarker{Marqueur Maven trouvé ?}
-    CheckMarker -- Oui --> RegMarker[Enregistrement du Plugin trouvé]
+    ScanCP --> CheckMarker{Maven Marker found?}
+    CheckMarker -- Yes --> RegMarker[Register found Plugin]
     
     InitCM --> AddCaller[addCallerAsPlugin()]
-    AddCaller --> CheckSelf{Appelant est un composant ?}
-    CheckSelf -- Oui --> RegCaller[Enregistrement de l'Appelant]
+    AddCaller --> CheckSelf{Caller is a component?}
+    CheckSelf -- Yes --> RegCaller[Register Caller]
     
-    CreateCont --> Final([Plugins Chargés & Isolés])
+    CreateCont --> Final([Plugins Loaded & Isolated])
     RegMarker --> Final
     RegCaller --> Final
 ```
 
-## 4. Résolution des Artefacts
+## 4. Artifact Resolution
 
-Qu'il soit découvert ou déclaré, un plugin doit être "résolu" pour récupérer son JAR et ses dépendances.
-Le `ContainerManager` utilise un résolveur (souvent basé sur Maven) :
-- Si l'ID est une coordonnée Maven (`mvn:...`), il cherche dans le dépôt local (`.m2`) ou un dépôt imbriqué.
-- Si l'ID est un chemin fichier, il charge directement.
+Whether discovered or declared, a plugin must be "resolved" to retrieve its JAR and dependencies.
+The `ContainerManager` uses a resolver (often Maven-based):
+- If the ID is a Maven coordinate (`mvn:...`), it searches in the local repository (`.m2`) or a nested repository.
+- If the ID is a file path, it loads directly.
 
 > [!NOTE]
-> Dans le cas des fatjars générés par les outils Talend, les dépendances sont souvent incluses à l'intérieur du fatjar dans un dossier `MAVEN-INF` ou similaire, et `plugins.properties` fait le lien vers ces ressources internes.
+> In the case of fatjars generated by Talend tools, dependencies are often included inside the fatjar within a `MAVEN-INF` or similar folder, and `plugins.properties` links to these internal resources.
