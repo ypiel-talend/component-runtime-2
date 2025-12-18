@@ -11,17 +11,17 @@ This document describes how the ComponentManager loads TCK containers (plugins) 
 ## High-level architecture
 
 ```mermaid
-flowchart TD
-    A[ComponentManager] -->|builds| B[ContainerManager]
-    B -->|create()| C[Container]
-    C -->|loader| D[ConfigurableClassLoader]
-    C -->|scan & register| E[ContainerComponentRegistry]
-    A -->|find*/create*| E
-    subgraph Discovery
-      A1[Caller/classpath auto-discovery]
-      A2[Explicit addPlugin/addWithLocation]
-    end
-    A --> Discovery
+   flowchart TD
+       A[ComponentManager] --> B[ContainerManager]
+       B --> C[Container]
+       C --> D[ConfigurableClassLoader]
+       C --> E[ContainerComponentRegistry]
+       A --> E
+       subgraph Discovery
+         A1[Caller/classpath auto-discovery]
+         A2[Explicit addPlugin/addWithLocation]
+       end
+       A --> Discovery
 ```
 
 - ComponentManager owns a ContainerManager and orchestrates discovery, creation, and lookup of component instances.
