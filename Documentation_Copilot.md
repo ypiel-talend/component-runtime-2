@@ -95,13 +95,13 @@ The container module location (the "plugin root") supports several forms. Resolu
 
 ```mermaid
 flowchart TB
-  R[resolve(module)] --> F{Exists on FS?}
-  F -- yes --> P1[Use file/dir URL]
+  R(resolve(module)) --> F{Exists on FS?}
+  F -- yes --> P1(Use file/dir URL)
   F -- no --> G{Maven-like?}
-  G -- yes --> P2[~/.m2 path]
+  G -- yes --> P2(~/.m2 path)
   G -- no --> N{Nested repo resource?}
-  N -- yes --> P3[nested: URL]
-  N -- no --> P4[Fallback lib filename]
+  N -- yes --> P3(nested: URL)
+  N -- no --> P4(Fallback lib filename)
 ```
 
 ## Building the classpath of a container
